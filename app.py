@@ -5,10 +5,21 @@ import requests
 from rapidfuzz import process, fuzz
 import os
 
-# --- 1. API KEY CONFIGURATION ---
+# --- 1. PAGE CONFIGURATION (MUST BE FIRST) ---
+st.set_page_config(layout="wide", page_title="King Move AI")
+
+# --- 2. API KEY CONFIGURATION ---
 TMDB_API_KEY = "YOUR_TMDB_API_KEY_HERE"  # <--- PASTE KEY HERE
 
-# --- 2. LOAD DATA ---
+# --- 3. CUSTOM CSS (Dark Theme) ---
+st.markdown("""
+    <style>
+    .stApp {background-color: #0e1117;}
+    img {border-radius: 10px;}
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- 4. LOAD DATA ---
 MODEL_DIR = 'model'
 DF_FILE = os.path.join(MODEL_DIR, 'kingmove_df.pkl')
 SIM_MATRIX_FILE = os.path.join(MODEL_DIR, 'similarity_matrix.pkl')
@@ -25,7 +36,7 @@ def load_data():
 
 df, similarity_matrix = load_data()
 
-# --- 3. FETCH POSTER FUNCTION ---
+# --- 5. FETCH POSTER FUNCTION ---
 def fetch_poster(title):
     fallback = "https://via.placeholder.com/500x750?text=No+Image"
     if TMDB_API_KEY == "YOUR_TMDB_API_KEY_HERE": return "https://via.placeholder.com/500x750?text=Add+API+Key"
@@ -41,7 +52,7 @@ def fetch_poster(title):
         pass
     return fallback
 
-# --- 4. CORE LOGIC ---
+# --- 6. CORE LOGIC ---
 def recommend(title, media_type, lang=None, selected_genres=[], num_recommendations=10):
     # Filters
     mask = (df['type'] == media_type)
@@ -75,11 +86,8 @@ def recommend(title, media_type, lang=None, selected_genres=[], num_recommendati
         
     return matched_title, results
 
-# --- 5. UI SETUP (UPDATED WITH HERO SECTION) ---
+# --- 7. UI LAYOUT ---
 if df is not None:
-    st.set_page_config(layout="wide", page_title="King Move AI")
-    st.markdown("""<style>.stApp {background-color: #0e1117;} img {border-radius: 10px;}</style>""", unsafe_allow_html=True)
-    
     st.title("👑 King Move AI Recommender")
     
     with st.sidebar:
@@ -96,19 +104,17 @@ if df is not None:
             matched_title, results = recommend(query, m_type, lang, genres, num)
             
             if matched_title:
-                # --- NEW HERO SECTION ---
+                # Hero Section
                 st.markdown("---")
-                col1, col2 = st.columns([1, 4]) # 1 part Image, 4 parts Text
+                col1, col2 = st.columns([1, 4])
                 
                 with col1:
-                    # Display the poster of the SEARCHED movie
                     st.image(fetch_poster(matched_title), use_container_width=True)
                     
                 with col2:
                     st.success(f"✅ Match Found: **{matched_title}**")
                     st.markdown("### 👇 Recommendations for you:")
                     
-                    # Display Recommendations Grid inside the second column (or below)
                     rec_cols = st.columns(5)
                     for i, movie in enumerate(results):
                         with rec_cols[i % 5]:
@@ -116,3 +122,6 @@ if df is not None:
                             st.caption(f"**{movie['title']}**")
             else:
                 st.error(f"❌ Movie '{query}' not found (Threshold 80%). Try another title.")
+
+else:
+    st.error("Model files not found. Please upload the 'model' folder to Hugging Face Files.")
